@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diozionario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #12151c;
+    --ink-2: #1a1f29;
+    --card: #ece4d0;
+    --card-shadow: #05060a;
+    --stamp: #7a2e2e;
+    --paper-line: #c9bd9c;
+    --text-dim: #8b8f9c;
+    --text-bright: #e9e6dd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    background-image: radial-gradient(circle at 50% 0%, #1c212c 0%, var(--ink) 60%);
+    color: var(--text-bright);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    padding: 48px 20px 80px;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; }
+  header { margin-bottom: 40px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--text-dim); margin: 0 0 8px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 600; font-size: 30px;
+    margin: 0 0 10px; color: var(--text-bright); letter-spacing: -0.01em;
+  }
+  .lede { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin: 0; }
+
+  .controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+  .row { display: flex; gap: 8px; }
+  input[type=text] {
+    flex: 1; background: var(--ink-2); border: 1px solid #333a48; color: var(--text-bright);
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; padding: 12px 14px;
+    border-radius: 2px; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--stamp); }
+  button {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.04em;
+    text-transform: uppercase; cursor: pointer; border-radius: 2px; padding: 12px 16px;
+    border: 1px solid #333a48; background: var(--ink-2); color: var(--text-bright);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  button:hover:not(:disabled) { border-color: var(--text-dim); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { background: var(--stamp); border-color: var(--stamp); color: #f2e9e2; flex: 1; }
+  button.primary:hover:not(:disabled) { background: #8f3535; }
+  .pos-row { flex-wrap: wrap; }
+  .pos-row .pos-btn { flex: 1 1 calc(50% - 4px); min-width: 120px; }
+  button.ghost { background: transparent; }
+
+  .status { font-size: 12px; color: var(--text-dim); min-height: 16px; margin: -4px 0 0; }
+  .status.error { color: #d98a8a; }
+
+  .card {
+    position: relative;
+    background: var(--card);
+    color: #1f1b14;
+    border-radius: 1px;
+    padding: 30px 26px 24px;
+    box-shadow: 0 18px 40px -12px var(--card-shadow), 0 0 0 1px #d8cca8 inset;
+    margin-bottom: 28px;
+    display: none;
+  }
+  .card.visible { display: block; }
+  .card::before {
+    content: ''; position: absolute; top: 14px; left: 14px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ink); box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+  }
+  .stamp {
+    position: absolute; top: 20px; right: 22px;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--stamp); border: 1px solid var(--stamp); padding: 3px 7px;
+    transform: rotate(-6deg); opacity: 0.85; white-space: nowrap;
+  }
+  .headword {
+    font-family: 'Fraunces', serif; font-weight: 600; font-style: italic;
+    font-size: 24px; margin: 6px 60px 4px 22px; color: #1f1b14;
+  }
+  .rule { border: none; border-top: 1px dashed var(--paper-line); margin: 14px 0; }
+  .definition {
+    font-family: 'Fraunces', serif; font-size: 17px; line-height: 1.55; margin: 0 0 4px;
+  }
+  .meta { font-size: 11px; color: #6b6350; letter-spacing: 0.03em; margin-top: 10px; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .card-actions button { font-size: 11px; padding: 9px 12px; }
+  .card button.ghost { color: #1f1b14; border-color: #1f1b14; }
+
+  .history { margin-top: 44px; }
+  .history h2 {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-dim); font-weight: 500;
+    border-bottom: 1px solid #262c38; padding-bottom: 10px; margin: 0 0 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .history h2 button { font-size: 10px; padding: 4px 8px; }
+  .hist-item {
+    padding: 12px 0; border-bottom: 1px solid #20252f; font-size: 13px;
+    cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  }
+  .hist-item:hover .hist-text { color: var(--text-bright); }
+  .hist-text { color: #b9bcc7; font-family: 'Fraunces', serif; font-style: italic; }
+  .hist-date { color: #565c6b; font-size: 10px; flex-shrink: 0; }
+  .empty { color: #565c6b; font-size: 12px; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Innesto definitorio · fonte: Wikizionario</p>
+    <h1>Diozionario</h1>
+    <p class="lede">Scegli un definiendum, poi genera un innesto: una definizione vera, presa a caso da un altro lemma, trapiantata sulla tua parola.</p>
+  </header>
+
+  <div class="controls">
+    <div class="row">
+      <input type="text" id="definiendum" placeholder="definiendum (es. esistere)" autocomplete="off">
+      <button id="randomWordBtn" title="Definiendum casuale">Casuale</button>
+    </div>
+    <div class="row pos-row">
+      <button class="primary pos-btn" data-pos="">Casuale</button>
+      <button class="primary pos-btn" data-pos="sostantivo">Sostantivi</button>
+      <button class="primary pos-btn" data-pos="verbo">Verbi</button>
+      <button class="primary pos-btn" data-pos="aggettivo">Aggettivi</button>
+    </div>
+    <p class="status" id="status"></p>
+  </div>
+
+  <div class="card" id="card">
+    <div class="stamp" id="stampText">&lt; ?</div>
+    <div class="headword" id="cardHeadword">—</div>
+    <hr class="rule">
+    <p class="definition" id="cardDefinition">—</p>
+    <p class="meta" id="cardMeta"></p>
+    <div class="card-actions">
+      <button id="copyWithSource">Copia con promemoria</button>
+      <button id="copyClean" class="ghost">Copia per pubblicazione</button>
+    </div>
+  </div>
+
+  <div class="history">
+    <h2>Storico <button id="clearHistory">Svuota</button></h2>
+    <div id="historyList"><p class="empty">Nessun innesto ancora salvato.</p></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://it.wiktionary.org/w/api.php';
+const STORAGE_KEY = 'definizioni-innestate-storico';
+
+const CATEGORIES = {
+  sostantivo: 'Categoria:Sostantivi in italiano',
+  verbo: 'Categoria:Verbi in italiano',
+  aggettivo: 'Categoria:Aggettivi in italiano',
+};
+const POS_KEYS = Object.keys(CATEGORIES);
+
+// Serbatoio locale: definizioni già pronte, per non interrogare l'API a ogni clic.
+const pool = { sostantivo: [], verbo: [], aggettivo: [] };
+const refilling = { sostantivo: false, verbo: false, aggettivo: false };
+
+let current = null;
+
+const statusEl = document.getElementById('status');
+const cardEl = document.getElementById('card');
+const posButtons = document.querySelectorAll('.pos-btn');
+const randomWordBtn = document.getElementById('randomWordBtn');
+const definiendumInput = document.getElementById('definiendum');
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg || '';
+  statusEl.classList.toggle('error', !!isError);
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const INFLECTED_FORM_PATTERN = /^(prima|seconda|terza)\s+persona|participio\s+(passato|presente)|gerundio|plurale\s+(di|femminile)|femminile\s+(di|plurale|singolare)|maschile\s+(di|plurale|singolare)|singolare\s+(di|maschile|femminile)|forma\s+flessa|voce\s+(verbale\s+)?del\s+verbo|imperativo\s+(di|singolare|plurale)|congiuntivo\s+(di|presente|imperfetto)|condizionale\s+(di|presente)|indicativo\s+(di|presente|imperfetto|futuro)|comparativo\s+di|superlativo\s+di/i;
+
+function stripWikitext(s) {
+  let t = s;
+  for (let i = 0; i < 6; i++) {
+    const before = t;
+    t = t.replace(/\{\{[^{}]*\}\}/g, '');
+    if (t === before) break;
+  }
+  t = t.replace(/\[\[[^\]|]*\|([^\]]*)\]\]/g, '$1');
+  t = t.replace(/\[\[([^\]]*)\]\]/g, '$1');
+  t = t.replace(/'''([^']*)'''/g, '$1');
+  t = t.replace(/''([^']*)''/g, '$1');
+  t = t.replace(/<[^>]+>/g, '');
+  t = t.replace(/\s{2,}/g, ' ').trim();
+  return t;
+}
+
+function extractItalianDefinitions(wikitext) {
+  const secMatch = wikitext.match(/\{\{-it-\}\}[\s\S]*?(?=\n==[^=]|\n\{\{-\w\w-\}\}|$)/);
+  const section = secMatch ? secMatch[0] : wikitext;
+  const defs = [];
+  for (const line of section.split('\n')) {
+    const m = line.match(/^#{1,2}(?!\s*[:*])\s*(.+)/);
+    if (!m) continue;
+    const cleaned = stripWikitext(m[1]);
+    if (cleaned.length < 6) continue;
+    if (INFLECTED_FORM_PATTERN.test(cleaned)) continue;
+    defs.push(cleaned);
+  }
+  return defs;
+}
+
+// Prefisso casuale di tre lettere: il punto d'ingresso cade in zone sempre diverse dell'alfabeto.
+const ALPHA = 'abcdefghilmnopqrstuvz';
+function randomPrefix() {
+  let s = '';
+  for (let i = 0; i < 3; i++) s += ALPHA[Math.floor(Math.random() * ALPHA.length)];
+  return s;
+}
+
+// Prende pochi lemmi a partire da un punto specifico dell'alfabeto.
+async function fetchCategoryBlock(pos, prefix) {
+  const cat = CATEGORIES[pos];
+  const url = `${API}?action=query&list=categorymembers` +
+    `&cmtitle=${encodeURIComponent(cat)}` +
+    `&cmnamespace=0&cmlimit=3&cmtype=page` +
+    (prefix ? `&cmstartsortkeyprefix=${encodeURIComponent(prefix)}` : '') +
+    `&format=json&origin=*`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const members = data.query && data.query.categorymembers;
+  if (!members) return [];
+  return members.map(m => m.title).filter(t => /^[a-zàèéìòùA-Z'-]+$/.test(t));
+}
+
+// Pesca da più prefissi casuali in parallelo.
+async function fetchCategoryTitles(pos) {
+  const prefixes = Array.from({ length: 16 }, randomPrefix);
+  const blocks = await Promise.all(prefixes.map(p => fetchCategoryBlock(pos, p).catch(() => [])));
+  let titles = [...new Set(blocks.flat())];
+  if (titles.length === 0) {
+    titles = await fetchCategoryBlock(pos, null); // ultimo ripiego: dall'inizio della categoria
+  }
+  return titles;
+}
+
+// Scarica in una sola richiesta il testo di molte voci insieme.
+async function fetchManyWikitexts(titles) {
+  if (titles.length === 0) return [];
+  const url = `${API}?action=query&titles=${encodeURIComponent(titles.join('|'))}` +
+    `&prop=revisions&rvprop=content&rvslots=main&format=json&origin=*`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const pages = data.query && data.query.pages;
+  if (!pages) return [];
+  const out = [];
+  for (const page of Object.values(pages)) {
+    if (!page.revisions) continue;
+    const slots = page.revisions[0].slots;
+    const text = slots && slots.main ? slots.main['*'] : null;
+    if (text) out.push({ title: page.title, wikitext: text });
+  }
+  return out;
+}
+
+// Riempie il serbatoio di una categoria, campionando da più zone dell'alfabeto.
+async function refillPool(pos) {
+  if (refilling[pos]) return;
+  refilling[pos] = true;
+  try {
+    const titles = await fetchCategoryTitles(pos);
+    const subset = shuffle(titles).slice(0, 50);
+    const pages = await fetchManyWikitexts(subset);
+    for (const { title, wikitext } of pages) {
+      const defs = extractItalianDefinitions(wikitext);
+      if (defs.length === 0) continue;
+      const def = defs[Math.floor(Math.random() * defs.length)];
+      pool[pos].push({ lemma: title, definizione: def });
+    }
+    pool[pos] = shuffle(pool[pos]);
+  } catch (e) {
+    // silenzioso: il serbatoio resterà vuoto e verrà ritentato al prossimo clic
+  } finally {
+    refilling[pos] = false;
+  }
+}
+
+async function takeFromPool(pos) {
+  if (pool[pos].length === 0) {
+    setStatus('preparo le definizioni…');
+    await refillPool(pos);
+  }
+  const item = pool[pos].pop() || null;
+  // Se il serbatoio si sta svuotando, lo ricarico in sottofondo senza far attendere l'utente.
+  if (pool[pos].length < 5 && !refilling[pos]) refillPool(pos);
+  return item;
+}
+
+async function onGenerate(posFilter) {
+  const definiendum = definiendumInput.value.trim();
+  if (!definiendum) {
+    setStatus('scrivi prima un definiendum, o premi "Casuale" accanto al campo.', true);
+    return;
+  }
+  posButtons.forEach(b => b.disabled = true);
+  randomWordBtn.disabled = true;
+  try {
+    const pos = posFilter || POS_KEYS[Math.floor(Math.random() * POS_KEYS.length)];
+    let result = await takeFromPool(pos);
+    if (!result) {
+      await refillPool(pos);
+      result = pool[pos].pop() || null;
+    }
+    if (!result) {
+      setStatus('nessuna definizione trovata. riprova tra qualche secondo.', true);
+      return;
+    }
+    setStatus('');
+    current = { definiendum, definizione: result.definizione, fonte: result.lemma, data: new Date().toISOString() };
+    renderCard(current);
+    saveToHistory(current);
+    renderHistory();
+  } catch (e) {
+    setStatus('errore di rete durante l\'accesso a Wikizionario.', true);
+  } finally {
+    posButtons.forEach(b => b.disabled = false);
+    randomWordBtn.disabled = false;
+  }
+}
+
+async function onRandomWord() {
+  randomWordBtn.disabled = true;
+  setStatus('cerco una parola…');
+  try {
+    const pos = POS_KEYS[Math.floor(Math.random() * POS_KEYS.length)];
+    const titles = await fetchCategoryTitles(pos);
+    if (titles.length > 0) {
+      definiendumInput.value = titles[Math.floor(Math.random() * titles.length)];
+      setStatus('');
+    } else {
+      setStatus('non sono riuscito a pescare una parola. riprova.', true);
+    }
+  } catch (e) {
+    setStatus('errore nel recupero della parola casuale.', true);
+  } finally {
+    randomWordBtn.disabled = false;
+  }
+}
+
+function renderCard(entry) {
+  document.getElementById('stampText').textContent = `< ${entry.fonte}`;
+  document.getElementById('cardHeadword').textContent = entry.definiendum;
+  document.getElementById('cardDefinition').textContent = entry.definizione;
+  document.getElementById('cardMeta').textContent = 'promemoria: non includere nella pubblicazione';
+  cardEl.classList.add('visible');
+}
+
+function fullText(entry) {
+  return `${entry.definiendum}: ${entry.definizione} (← ${entry.fonte})`;
+}
+function cleanText(entry) {
+  return `${entry.definiendum}: ${entry.definizione}`;
+}
+
+// Scrive solo text/plain, così la fonte resta testo semplice.
+function copyPlain(text, msg) {
+  navigator.clipboard.writeText(text);
+  setStatus(msg);
+}
+
+document.getElementById('copyWithSource').addEventListener('click', () => {
+  if (!current) return;
+  copyPlain(fullText(current), 'copiato (con promemoria).');
+});
+document.getElementById('copyClean').addEventListener('click', () => {
+  if (!current) return;
+  copyPlain(cleanText(current), 'copiato (senza fonte).');
+});
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch (e) { return []; }
+}
+function saveToHistory(entry) {
+  const hist = loadHistory();
+  hist.unshift(entry);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(hist.slice(0, 200)));
+}
+function renderHistory() {
+  const hist = loadHistory();
+  const el = document.getElementById('historyList');
+  if (hist.length === 0) {
+    el.innerHTML = '<p class="empty">Nessun innesto ancora salvato.</p>';
+    return;
+  }
+  el.innerHTML = '';
+  hist.forEach((entry) => {
+    const div = document.createElement('div');
+    div.className = 'hist-item';
+    const date = new Date(entry.data);
+    const dateStr = date.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const text = document.createElement('span');
+    text.className = 'hist-text';
+    text.textContent = `${entry.definiendum}: ${entry.definizione}`;
+    const when = document.createElement('span');
+    when.className = 'hist-date';
+    when.textContent = dateStr;
+    div.appendChild(text);
+    div.appendChild(when);
+    div.addEventListener('click', () => {
+      current = entry;
+      renderCard(entry);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    el.appendChild(div);
+  });
+}
+
+document.getElementById('clearHistory').addEventListener('click', () => {
+  if (confirm('Svuotare tutto lo storico?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    renderHistory();
+  }
+});
+
+posButtons.forEach(btn => {
+  btn.addEventListener('click', () => onGenerate(btn.dataset.pos || undefined));
+});
+randomWordBtn.addEventListener('click', onRandomWord);
+definiendumInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') onGenerate(undefined); });
+
+renderHistory();
+// Precarico un serbatoio all'avvio, così il primo clic è già istantaneo.
+refillPool(POS_KEYS[Math.floor(Math.random() * POS_KEYS.length)]);
+</script>
+</body>
+</html>
